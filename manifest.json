@@ -1,0 +1,28 @@
+{
+    "manifest_version": 3,
+    "name": "Skyphin",
+    "version": "1.0",
+    "description": "Skyphin - social layer of the web",
+    "host_permissions": ["<all_urls>"],
+    "action": {
+      "default_popup": "index.html",
+      "default_icon": {
+        "16": "extension/icons/16.png",
+        "32": "extension/icons/32.png",
+        "48": "extension/icons/48.png"
+      }
+    },
+    "icons": {
+      "16": "extension/icons/16.png",
+      "32": "extension/icons/32.png",
+      "48": "extension/icons/48.png",
+      "128": "extension/icons/128.png"
+    },
+    "permissions": ["tabs", "sidePanel"],
+    "background": {
+      "service_worker": "extension/service-workers/background.js"
+    },
+    "side_panel": {
+      "default_path": "index.html"
+    }
+}
