@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import "./App.css";
+import Header from "./components/Header";
+import Content from "./components/Content";
+import Action from "./components/Action";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function App() {
@@ -23,7 +25,6 @@ function App() {
       setUrl(tab?.url ?? "");
     }
     function handleMessage(message: any) {
-      console.log("Message Info:", message);
       if (message.type === "TAB_UPDATED") {
         if (message.tab?.id === tabId) {
           updateTitleAndUrl(message.tab);
@@ -44,11 +45,11 @@ function App() {
   }, [tabId]);
 
   return (
-    <div className="App">
-      {title}
-      <br />
-      {url}
-    </div>
+    <>
+      <Header title={title} url={url}></Header>
+      <Content></Content>
+      <Action></Action>
+    </>
   );
 }
 
