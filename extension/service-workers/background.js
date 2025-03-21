@@ -1,13 +1,5 @@
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.event == 'EXTENSION_OPENED') {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            chrome.runtime.sendMessage({ type: "TAB_INITIATED", tab: tabs[0] });
-        });
-    }
-})
-
 chrome.tabs.onActivated.addListener((activeInfo) => {
     console.log(activeInfo);
     chrome.tabs.get(activeInfo.tabId, (tab) => {
@@ -26,3 +18,58 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         chrome.runtime.sendMessage({ type: "TAB_UPDATED", tab });
     }
 });
+
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.event === "EXTENSION_OPENED") {
+        handleExtensionOpened();
+    } else if (message.event === "REST_API_REQUEST") {
+        handleApiRequest(message.options);
+    }
+});
+
+function handleExtensionOpened() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.runtime.sendMessage({ type: "TAB_INITIATED", tab: tabs[0] });
+    });
+}
+
+function handleTokenRefresh() {
+    const refreshToken = localStorage.getItem("refreshToken");
+    fetch(process.env.API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken }),
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("refreshToken", data.refreshToken);
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+}
+
+function handleApiRequest(options) {
+    fetch(process.env.API_URL, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            chrome.runtime.sendMessage({ type: "REST_API_RESPONSE", data });
+        })
+        .catch((error) => {
+            if (error.status === 401) {
+                handleTokenRefresh();
+                handleApiRequest(options);
+            } else {
+                chrome.runtime.sendMessage({ type: "REST_API_RESPONSE", error });
+            }
+        });
+}
