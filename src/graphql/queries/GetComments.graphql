@@ -1,0 +1,23 @@
+query GetComments($url: String!, $first: Int, $after: String) {
+  comments(url: $url, first: $first, after: $after) {
+    edges {
+      node {
+        id
+        content
+        author {
+          id
+          username
+        }
+        createdAt
+        upvoteCount
+        downvoteCount
+        replyCount
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

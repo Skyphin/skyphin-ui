@@ -1,0 +1,13 @@
+mutation AddReply($input: AddReplyInput!) {
+  addReply(input: $input) {
+    id
+    content
+    author {
+      id
+      username
+    }
+    createdAt
+    upvoteCount
+    downvoteCount
+  }
+}

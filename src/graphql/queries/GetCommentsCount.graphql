@@ -1,0 +1,3 @@
+query GetCommentsCount($url: String!) {
+  commentsCount(url: $url)
+}
