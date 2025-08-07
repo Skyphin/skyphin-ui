@@ -30,7 +30,7 @@
     "@graphql-codegen/typescript": "^4.1.6",
     "@graphql-codegen/typescript-operations": "^4.6.1",
     "@graphql-codegen/typescript-react-query": "^6.1.1",
-    "@types/chrome": "^0.0.304",
+    "@types/chrome": "^0.1.1",
     "@types/firefox-webext-browser": "^120.0.4",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
