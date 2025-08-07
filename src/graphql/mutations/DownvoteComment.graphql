@@ -1,0 +1,7 @@
+mutation DownvoteComment($commentId: ID!) {
+  downvoteComment(commentId: $commentId) {
+    id
+    upvoteCount
+    downvoteCount
+  }
+}

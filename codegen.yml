@@ -1,0 +1,19 @@
+overwrite: true  # Ensure the generated files are overwritten on each run
+
+schema: "./schema.graphql"  # Path to your local schema file
+documents: "./src/graphql/**/*.graphql"  # Path to your .graphql files (queries, mutations, etc.)
+
+generates:
+  # Generated types will be stored in the `src/types/graphql.ts` file
+  src/types/graphql.ts:
+    plugins:
+      - "typescript"  # Generates types for the schema
+      - "typescript-operations"  # Generates types for your queries and mutations
+      - "typescript-react-query"  # Generates hooks for React Query (if you're using it)
+    config:
+      reactQueryVersion: 5
+      fetcher: 
+        func: '../services/graphql-client#graphqlFetcher'
+        isReactHook: false
+      scalars:
+        DateTime: string
