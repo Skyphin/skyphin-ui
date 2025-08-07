@@ -1,0 +1,30 @@
+query GetCommentThread($commentId: ID!, $first: Int, $after: String) {
+  comment(id: $commentId) {
+    id
+    content
+    author {
+      id
+      username
+    }
+    replies(first: $first, after: $after) {
+      edges {
+        node {
+          id
+          content
+          author {
+            id
+            username
+          }
+          createdAt
+          upvoteCount
+          downvoteCount
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}

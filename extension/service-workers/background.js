@@ -24,6 +24,8 @@ chrome.runtime.onMessage.addListener((message) => {
         handleExtensionOpened();
     } else if (message.event === "REST_API_REQUEST") {
         handleApiRequest(message.options);
+    } else if (message.event === "GRAPHQL_REQUEST") {
+        handleGraphQLRequest(message.requestId, message.options);
     }
 });
 
@@ -70,6 +72,36 @@ function handleApiRequest(options) {
                 handleApiRequest(options);
             } else {
                 chrome.runtime.sendMessage({ type: "REST_API_RESPONSE", error });
+            }
+        });
+}
+
+function handleGraphQLRequest(requestId, options) {
+    fetch(process.env.API_URL, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            chrome.runtime.sendMessage({
+                type: "GRAPHQL_RESPONSE",
+                requestId,
+                data
+            });
+        })
+        .catch((error) => {
+            if (error.status === 401) {
+                handleTokenRefresh();
+                handleGraphQLRequest(requestId, options);
+            } else {
+                chrome.runtime.sendMessage({
+                    type: "GRAPHQL_RESPONSE",
+                    requestId,
+                    error: error.message
+                });
             }
         });
 }

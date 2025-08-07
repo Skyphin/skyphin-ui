@@ -1,0 +1,7 @@
+mutation UpvoteUrl($url: String!) {
+  upvoteUrl(url: $url) {
+    url
+    upvoteCount
+    downvoteCount
+  }
+}
