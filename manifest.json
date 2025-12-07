@@ -24,7 +24,8 @@
   },
   "permissions": [
     "tabs",
-    "sidePanel"
+    "sidePanel",
+    "identity"
   ],
   "background": {
     "service_worker": "extension/service-workers/background.js"

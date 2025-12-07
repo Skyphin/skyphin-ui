@@ -1,14 +1,33 @@
-import { memo, useRef } from "react";
+import { memo, useRef, useState } from "react";
 import { useUrl } from "../hooks/useUrl";
 
-export const ActionPanel = memo(() => {
+interface ActionPanelProps {
+  onSendMessage?: (message: string) => void;
+  isLoading?: boolean;
+}
+
+export const ActionPanel = memo(({ onSendMessage, isLoading }: ActionPanelProps) => {
   const { state } = useUrl();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [input, setInput] = useState("");
 
   const adjustTextareaHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto"; // Reset height to auto
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`; // Set height to scrollHeight
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (input.trim() && onSendMessage) {
+        onSendMessage(input.trim());
+        setInput("");
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "auto";
+        }
+      }
     }
   };
 
@@ -35,12 +54,15 @@ export const ActionPanel = memo(() => {
             </span>
           </div>
           <div className="flex basis-3 flex-1 w-full">
-            {/* Input field */}
             <div className="flex flex-1 w-full items-center overflow-hidden dark:bg-[#2c2c2c] rounded-xl border border-gray-200 dark:border-gray-700 dark:focus-within:border-gray-600 transition-shadow">
               <textarea
                 ref={textareaRef}
-                placeholder="Ask anything"
-                className="bg-transparent w-full max-h-80 px-4 py-3 flex-1 outline-none text-gray-900 dark:text-gray-200 placeholder-gray-500 overflow-scroll text-sm resize-none"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
+                placeholder={isLoading ? "Agent is thinking..." : "Ask anything"}
+                className="bg-transparent w-full max-h-80 px-4 py-3 flex-1 outline-none text-gray-900 dark:text-gray-200 placeholder-gray-500 overflow-scroll text-sm resize-none disabled:opacity-50"
                 rows={1}
                 onInput={adjustTextareaHeight}
               />
