@@ -1,107 +1,141 @@
+// Service Worker for A9flow Chrome Extension
+// Handles tab events, side panel, and communication with Firebase-authenticated backend
+
+// Initialize side panel behavior
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
+// ============================================================================
+// Tab Event Listeners
+// ============================================================================
+
 chrome.tabs.onActivated.addListener((activeInfo) => {
-    console.log(activeInfo);
     chrome.tabs.get(activeInfo.tabId, (tab) => {
-        console.log(tab);
         if (chrome.runtime.lastError) {
-            console.error(chrome.runtime.lastError);
+            console.error('Error getting tab:', chrome.runtime.lastError);
             return;
         }
-        chrome.runtime.sendMessage({ type: "TAB_CHANGED", tab });
+        // Notify side panel about tab change
+        chrome.runtime.sendMessage({
+            type: 'TAB_CHANGED',
+            tab
+        }).catch(() => {
+            // Side panel might not be open, ignore error
+        });
     });
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    console.log(tabId, changeInfo, tab);
-    if (tab.status === "complete") {
-        chrome.runtime.sendMessage({ type: "TAB_UPDATED", tab });
+    if (changeInfo.status === 'complete') {
+        // Notify side panel about tab update
+        chrome.runtime.sendMessage({
+            type: 'TAB_UPDATED',
+            tab
+        }).catch(() => {
+            // Side panel might not be open, ignore error
+        });
     }
 });
 
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.event === "EXTENSION_OPENED") {
+chrome.tabs.onRemoved.addListener((tabId) => {
+    // Clear chat history for the closed tab
+    chrome.storage.local.remove(`chat_${tabId}`);
+});
+
+// ============================================================================
+// Message Handlers
+// ============================================================================
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.event === 'EXTENSION_OPENED') {
         handleExtensionOpened();
-    } else if (message.event === "REST_API_REQUEST") {
-        handleApiRequest(message.options);
-    } else if (message.event === "GRAPHQL_REQUEST") {
-        handleGraphQLRequest(message.requestId, message.options);
+        return false;
+    }
+    return false;
+});
+
+// ============================================================================
+// Extension Lifecycle
+// ============================================================================
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+    if (details.reason === 'install') {
+        console.log('A9flow extension installed');
+        // Set default settings
+        await chrome.storage.local.set({
+            settings: {
+                autoOpen: false,
+                theme: 'system'
+            }
+        });
+    } else if (details.reason === 'update') {
+        console.log('A9flow extension updated to version', chrome.runtime.getManifest().version);
     }
 });
+
+// ============================================================================
+// Handler Functions
+// ============================================================================
 
 function handleExtensionOpened() {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.runtime.sendMessage({ type: "TAB_INITIATED", tab: tabs[0] });
+        if (tabs[0]) {
+            chrome.runtime.sendMessage({
+                type: 'TAB_INITIATED',
+                tab: tabs[0]
+            }).catch(() => {
+                // Side panel might not be open yet
+            });
+        }
     });
 }
 
-function handleTokenRefresh() {
-    const refreshToken = localStorage.getItem("refreshToken");
-    fetch(process.env.API_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
-    })
-        .then((response) => response.json())
-        .then((data) => {
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("refreshToken", data.refreshToken);
-        })
-        .catch((error) => {
-            console.error(error);
-        });
-}
+// ============================================================================
+// Context Menu (Optional - for future use)
+// ============================================================================
 
-function handleApiRequest(options) {
-    fetch(process.env.API_URL, {
-        ...options,
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-    })
-        .then((response) => response.json())
-        .then((data) => {
-            chrome.runtime.sendMessage({ type: "REST_API_RESPONSE", data });
-        })
-        .catch((error) => {
-            if (error.status === 401) {
-                handleTokenRefresh();
-                handleApiRequest(options);
-            } else {
-                chrome.runtime.sendMessage({ type: "REST_API_RESPONSE", error });
-            }
-        });
-}
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.create({
+        id: 'analyze-page',
+        title: 'Analyze with A9flow',
+        contexts: ['page']
+    });
 
-function handleGraphQLRequest(requestId, options) {
-    fetch(process.env.API_URL, {
-        ...options,
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-    })
-        .then((response) => response.json())
-        .then((data) => {
+    chrome.contextMenus.create({
+        id: 'analyze-selection',
+        title: 'Analyze selection',
+        contexts: ['selection']
+    });
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === 'analyze-page' || info.menuItemId === 'analyze-selection') {
+        // Open side panel
+        chrome.sidePanel.open({ windowId: tab.windowId });
+
+        // Send context to side panel
+        setTimeout(() => {
             chrome.runtime.sendMessage({
-                type: "GRAPHQL_RESPONSE",
-                requestId,
-                data
+                type: 'CONTEXT_MENU_CLICKED',
+                menuItemId: info.menuItemId,
+                selectionText: info.selectionText,
+                pageUrl: info.pageUrl
+            }).catch(() => {
+                // Side panel might not be ready yet
             });
-        })
-        .catch((error) => {
-            if (error.status === 401) {
-                handleTokenRefresh();
-                handleGraphQLRequest(requestId, options);
-            } else {
-                chrome.runtime.sendMessage({
-                    type: "GRAPHQL_RESPONSE",
-                    requestId,
-                    error: error.message
-                });
+        }, 500);
+    }
+});
+
+// ============================================================================
+// Keyboard Commands
+// ============================================================================
+
+chrome.commands.onCommand.addListener((command) => {
+    if (command === 'open-side-panel') {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]) {
+                chrome.sidePanel.open({ windowId: tabs[0].windowId });
             }
         });
-}
+    }
+});

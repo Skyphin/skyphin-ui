@@ -25,8 +25,21 @@
   "permissions": [
     "tabs",
     "sidePanel",
-    "identity"
+    "identity",
+    "storage",
+    "activeTab",
+    "scripting",
+    "contextMenus"
   ],
+  "commands": {
+    "open-side-panel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Open A9flow side panel"
+    }
+  },
   "background": {
     "service_worker": "extension/service-workers/background.js"
   },
